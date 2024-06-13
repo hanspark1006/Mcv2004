@@ -237,7 +237,9 @@ int main(void)
   MX_USART6_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
+
   banner();
+
   if(m_event_init()){
 	  LOG_ERR("Event queue Initialize Error!!");
 	  HAL_Delay(500);
@@ -626,7 +628,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 9600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -755,13 +757,13 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : DIPSW1_Pin DIPSW2_Pin DIPSW3_Pin DIPSW4_Pin */
   GPIO_InitStruct.Pin = DIPSW1_Pin|DIPSW2_Pin|DIPSW3_Pin|DIPSW4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : INPUT_SEL_Pin */
   GPIO_InitStruct.Pin = INPUT_SEL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(INPUT_SEL_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/

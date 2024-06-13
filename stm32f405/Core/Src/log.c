@@ -13,7 +13,7 @@
 #include "log.h"
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define DBG_UART	(&huart1)
+#define DBG_UART	(&huart6)
 #define MAX_PRINT_BUF	0xFF
 
 #define HEXDUMP_BYTES_IN_LINE 8U
@@ -31,7 +31,6 @@ void Printf(const char *fmt, ...)
 	va_end(args);
 
 	HAL_UART_Transmit(DBG_UART, (uint8_t *)debug_buf, strlen(debug_buf), 0xFFFFFF);
-
 }
 
 static void hex_dump_line_print(const char *data, int length)
@@ -61,5 +60,4 @@ void dump_printf(const void *data, int size, const char* str)
 		size -= HEXDUMP_BYTES_IN_LINE;
 		data_buf += HEXDUMP_BYTES_IN_LINE;
 	}
-
 }

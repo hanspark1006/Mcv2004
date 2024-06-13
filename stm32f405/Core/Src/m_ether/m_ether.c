@@ -22,8 +22,8 @@ typedef struct _mac_ip_addr
 #define  DEC2BCD(v) (((v/10)<<4) + (v%10));
 #define  BCD2DEC(v) ((v>>4)*10 + (v&0x0F));
 
-#define AT24EEP_ADDR		0xA8
-#define AT24MAC_ADDR		0xB8
+#define AT24EEP_ADDR		0xAE
+#define AT24MAC_ADDR		0xBE
 #define EUI48_ADDR			0x9A
 #define TCP_DATA_PAYLOAD	0x36
 
@@ -198,21 +198,17 @@ static int read_ipnet(void)
 
 	mem_address = 0;
 	size = sizeof(mac_ip_addr);
-	if(m_env_e2p_read(&MAC_I2C_HANDLE, AT24EEP_ADDR, mem_address, 2, buffer, size))
-	{
+	if(m_env_e2p_read(&MAC_I2C_HANDLE, AT24EEP_ADDR, mem_address, 2, buffer, size)){
 		LOG_ERR("Get IP Address from MacIC Error\r\n");
 		return 1;
 	}
 
 	memcpy(&g_ip_net, buffer, size);
-	if(memcmp(g_ip_net.id, "YS", 2)==0)
-	{
+	if(memcmp(g_ip_net.id, "YS", 2)==0){
 		LOG_INF("Read IP Addr [%03d.%03d.%03d.%03d] Port[%d]\r\n", g_ip_net.ip_net.ipaddr[0], g_ip_net.ip_net.ipaddr[1],
 							g_ip_net.ip_net.ipaddr[2], g_ip_net.ip_net.ipaddr[3], g_ip_net.ip_net.port);
 		return 0;
-	}
-	else
-	{
+	}else{
 		LOG_ERR("Not found IP Address from MacIC!!\r\n");
 		return 1;
 	}

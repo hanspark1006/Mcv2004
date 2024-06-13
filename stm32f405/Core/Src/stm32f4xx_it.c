@@ -267,7 +267,7 @@ void EXTI9_5_IRQHandler(void)
   /* USER CODE BEGIN EXTI9_5_IRQn 0 */
 	if(Device.nDeviceCurrentStatus == LCD_STATUS_MODE_STROBE_NORMAL){
 		if(Device.nDELAY[2] == 0){
-			GPIOB->BSRR = GPIO_PIN_4;
+			GPIOB->BSRR = GPIO_PIN_10;
 			nPWMTimer[2] = INIT_DELAY_MS;
 		}else{
 			nPWMTimer[2] = Device.nDELAY[2]+ADD_DELAY_MS;

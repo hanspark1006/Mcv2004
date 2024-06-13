@@ -26,7 +26,7 @@
 /* Private typedef -----------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
-#define MAX_RECV_LEN			255
+#define MAX_RECV_LEN			512
 #define MAX_FRONT_SEND_LEN		8
 #define MAX_PC_SEND_LEN			24
 
@@ -42,10 +42,9 @@ enum{
 static uint8_t Ext_rx_buf[1];
 static uint8_t Front_rx_buf[1];
 
-static uint8_t recv_buf[MAX_RECV_LEN];
+static uint8_t recv_buf[MAX_RECV_LEN]={0};
 static uint8_t extRxData[24]={0,};
 static uint8_t frontRxData[8]={0,};
-static uint8_t g_tx_complete;
 
 static int ext_in = 0, ext_out = 0;
 static int front_in = 0, front_out = 0;
@@ -77,6 +76,7 @@ uint8_t pop_ext_buf(uint8_t *ch)
 {
 	if(ext_in == ext_out) return 0;
 	ext_out = (ext_out + 1) % MAX_RECV_LEN;
+
 	*ch =  recv_buf[ext_out];
 
 	return 1;
@@ -86,6 +86,7 @@ uint8_t pop_front_buf(uint8_t *ch)
 {
 	if(front_in == front_out) return 0;
 	front_out = (front_out + 1) % MAX_RECV_LEN;
+
 	*ch =  recv_buf[front_out];
 
 	return 1;
@@ -103,11 +104,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 }
 
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
-{
-	g_tx_complete = 1;
-}
-
 int send_serial_data(uint8_t dest, uint8_t *send_data, uint32_t len)
 {
 	UART_HandleTypeDef *huart = FRONT_UART;
@@ -115,21 +111,10 @@ int send_serial_data(uint8_t dest, uint8_t *send_data, uint32_t len)
 	if(dest == eEXT_UART)
 		huart = EXT_UART;
 
-	if (HAL_UART_Transmit_IT (huart, send_data, len) != HAL_OK){
-		Printf("Modem send Cmd Error!! \r\n");
+	if (HAL_UART_Transmit(huart, send_data, len, 10) != HAL_OK){
+		LOG_ERR("Modem send Cmd Error!! \r\n");
 		return -EIO; // Error
 	}
-
-	while(HAL_UART_GetState(huart) == HAL_UART_STATE_BUSY_TX || HAL_UART_GetState(huart) == HAL_UART_STATE_BUSY_TX_RX){
-		osDelay(10);
-	}
-
-	while(g_tx_complete == 0){
-		osDelay(10);
-	}
-
-	g_tx_complete = 0;
-
 
 	return HAL_OK;
 }
@@ -187,10 +172,19 @@ void get_front_data(void)
 			frontRxData[i] = frontRxData[i+1];
 		}
 		frontRxData[i] = read_ch;
-
+		//LOG_HEX_DUMP(frontRxData, 8, "Get F");
 		m_normal_parse_received_data(UART_RECV_FRONT, frontRxData, 8);
 	}
 }
+
+//void dump_serial_buffer(void)
+//{
+//	LOG_DBG("FI[%d] FO[%d]", front_in, front_out);
+//	LOG_HEX_DUMP(recv_buf, 512, "Serial Buf");
+//	while(1){
+//		osDelay(1000);
+//	}
+//}
 
 void get_ext_data(void)
 {
@@ -217,9 +211,9 @@ void get_ext_data(void)
 static void SerialTask(void const * argument)
 {
 	while(1){
-		get_front_data();
 		get_ext_data();
-		osDelay(10);
+		get_front_data();
+		osDelay(2);
 	}
 }
 

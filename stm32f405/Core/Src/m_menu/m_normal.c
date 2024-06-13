@@ -91,6 +91,7 @@ int num_data_modify(uint8_t *pRX_data)
 uint8_t parse_remote(uint8_t *nRx1_data)
 {
 	if ((nRx1_data[4] == 0x02) && (nRx1_data[7] == 0x03)){
+		//LOG_HEX_DUMP(nRx1_data, 8, "Remote4");
 		if(num_data_modify(&nRx1_data[5])){
 			return 1;
 		}
@@ -104,6 +105,7 @@ uint8_t parse_remote(uint8_t *nRx1_data)
 			bSerialOnOff[idx] = 0;
 		}
 	}else if ((nRx1_data[0] == 0x02) && (nRx1_data[7] == 0x03)){
+		//LOG_HEX_DUMP(nRx1_data, 8, "Remote8");
 		if(num_data_modify(&nRx1_data[1])){
 			return 1;
 		}
@@ -121,8 +123,10 @@ uint8_t parse_remote(uint8_t *nRx1_data)
 			m_pwm_out(idx, Device.nSerialPWM[idx]);
 		}
 	}else if((nRx1_data[0] == 0xEF) && (nRx1_data[7] == 0xFE)){  // Set IP Address
+		LOG_HEX_DUMP(nRx1_data, 8, "Set IP");
 		push_event0_param(EVT_Set_ip, &nRx1_data[1], 6);
 	}else if((nRx1_data[0] == 0xDF) && (nRx1_data[7] == 0xFD)){	// Read IP Address
+		LOG_HEX_DUMP(nRx1_data, 8, "Read IP");
 		push_event0(EVT_Get_ip);
 	}
 
@@ -215,6 +219,7 @@ void parse_strobe(uint8_t *nRx1_data)
 	}
 }
 
+//extern void dump_serial_buffer(void);
 void parse_front(uint8_t *nRx2_data)
 {
 	uint16_t pin[]={EXT_INT1_Pin, EXT_INT2_Pin, EXT_INT3_Pin, EXT_INT4_Pin};
@@ -225,13 +230,7 @@ void parse_front(uint8_t *nRx2_data)
 		unsigned char protocol = nRx2_data[0];
 		unsigned char channel = nRx2_data[1];
 
-//		LOG_INF("Protocol:%x", protocol);
-
-//		for(int cnt = 0; cnt < 8; cnt++)
-//		{
-//			Printf("[%x] ", nRx2_data[cnt]);
-//		}
-//		Printf("\r\n");
+		//LOG_HEX_DUMP(nRx2_data, 8, "Front");
 
 		for(int i=0, j=2; i < 6; i++,j++){
 			recv_data[i]=nRx2_data[j];
@@ -241,8 +240,8 @@ void parse_front(uint8_t *nRx2_data)
 		int data = atoi(recv_data);
 		if (protocol == DEVICE_STATUS)
 		{
+			//LOG_INF("CurStatus:%d, RecvStatus[%d] DeviceNo[%d]", Device.nDeviceCurrentStatus, data, Device.nDeviceNo);
 			Device.nDeviceCurrentStatus = data;
-//			LOG_INF("CurStatus:%d, DeviceNo[%d]", data, Device.nDeviceNo);
 			if (Device.nDeviceCurrentStatus != Device.nDeviceCurrentStatus_old){
 				Device.nDeviceCurrentStatus_old = Device.nDeviceCurrentStatus;
 				setCurDeviceStatus();
@@ -278,6 +277,7 @@ void parse_front(uint8_t *nRx2_data)
 				for(int cnt = 0; cnt < MAX_PWM_CH; cnt++){
 					m_pwm_out(cnt, 0);
 				}
+				//dump_serial_buffer();
 				m_pwm_stop();
 				m_pwm_channel_change();
 			}
@@ -315,7 +315,7 @@ void parse_front(uint8_t *nRx2_data)
 			if (Device.nDeviceNo >= 1 && Device.nDeviceNo <= 6 ){
 				ch_base += (Device.nDeviceNo-1)*4;
 				ch_idx = channel - ch_base;
-//				LOG_INF("channel[%d] idx[%d] data[%d]", channel, ch_idx, data);
+				//LOG_INF("channel[%d] idx[%d] data[%d]", channel, ch_idx, data);
 				if(ch_idx < 4){
 					Device.nPWM[ch_idx]=data;
 				}

@@ -47,6 +47,7 @@ extern SPI_HandleTypeDef hspi1;
 
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart6;
 
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim7;

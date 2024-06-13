@@ -23,14 +23,12 @@ TIM_OC_InitTypeDef sConfigOC_;
 /* Private function prototypes -----------------------------------------------*/
 void m_pwm_out(int channel, int data)
 {
-	TIM_OC_InitTypeDef sConfigOC_;
 	uint32_t tim_ch[MAX_PWM_CH]={TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4};
 
-	if(data)
-		LOG_INF("%s ch[%d] data[%d]", __func__, channel, data);
+	//LOG_INF("%s ch[%d] data[%d]", __func__, channel, data);
 
 	sConfigOC_.Pulse = (uint32_t)data;
-
+#if 0
 	if(HAL_TIM_PWM_Stop(PWM_TIMER, tim_ch[channel])!=HAL_OK){
 		LOG_ERR("PWM Stop Error!!\r\n");
 	}
@@ -42,7 +40,11 @@ void m_pwm_out(int channel, int data)
 	if(HAL_TIM_PWM_Start(PWM_TIMER, tim_ch[channel]) != HAL_OK){
 		LOG_ERR("PWM Start Error!!\r\n");
 	}
-
+#else
+	if(HAL_TIM_PWM_ConfigChannel(PWM_TIMER, &sConfigOC_, tim_ch[channel]) != HAL_OK){
+		LOG_ERR("PWM Set config Error!!\r\n");
+	}
+#endif
 	m_normal_DataSend2(channel, data);
 }
 
@@ -93,8 +95,15 @@ void m_pwm_channel_change(void)
 
 void m_pwm_init(void)
 {
+	uint32_t tim_ch[MAX_PWM_CH]={TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4};
+	int i;
+
 	sConfigOC_.OCMode = TIM_OCMODE_PWM1;
-	sConfigOC_.Pulse = 500;
+	sConfigOC_.Pulse = 0;
 	sConfigOC_.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC_.OCFastMode = TIM_OCFAST_ENABLE;
+
+	for(i = 0; i < MAX_PWM_CH; i++){
+		HAL_TIM_PWM_Start(PWM_TIMER, tim_ch[i]);
+	}
 }
