@@ -107,12 +107,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 int send_serial_data(uint8_t dest, uint8_t *send_data, uint32_t len)
 {
 	UART_HandleTypeDef *huart = FRONT_UART;
+	int error;
 
 	if(dest == eEXT_UART)
 		huart = EXT_UART;
-
-	if (HAL_UART_Transmit(huart, send_data, len, 10) != HAL_OK){
-		LOG_ERR("Modem send Cmd Error!! \r\n");
+	error  = HAL_UART_Transmit(huart, send_data, len, 1000);
+	if (error != HAL_OK){
+		LOG_ERR("Modem send Cmd Error!![%x] \r\n", error);
 		return -EIO; // Error
 	}
 
@@ -130,36 +131,40 @@ void m_serial_SendFront(int protocol, int data)
 
 void m_serial_SendPC(uint8_t digit, void *data)
 {
-	char nData[MAX_PC_SEND_LEN];
-	int i, *ptr;
+	char nData[MAX_PC_SEND_LEN]={0};
+	int *ptr, send_len;
 	ip_net_t *ipnet;
 
 	if(digit == DIGIT_3){
 		ptr = (int *)data;
 		sprintf(nData, ":%xR%03d\r\n", Device.nDeviceNo, *ptr);
+		send_len = strlen(nData);
 	}else if(digit == DIGIT_1){
 		ptr = (int *)data;
 		sprintf(nData, ":%xR%d\r\n", Device.nDeviceNo, *ptr);
+		send_len = strlen(nData);
 	}else if(digit == RET_OK){
 		ptr = (int *)data;
 		if(*ptr){
 			sprintf(nData, "ERROR\r\n");
+			send_len = 7;
 		}else{
 			sprintf(nData, "OK\r\n");
+			send_len = 4;
 		}
 	}else if(digit == RET_IP){
 		nData[0] = 0xDF;
 		ipnet = (ip_net_t *)data;
 		memcpy(&nData[1], ipnet->ipaddr, 4);
 		memcpy(&nData[5], &ipnet->port, 2);
+		LOG_DBG("port[%d][%d][%d]",ipnet->port,nData[5],nData[6]);
+
 		nData[7] = 0xFD;
+		send_len = 8;
 	}
 
-	for(i = 0; i < MAX_PC_SEND_LEN; i++){
-		if(nData[i] == 0) break;
-	}
-
-	send_serial_data(eEXT_UART, (uint8_t *)nData, i-1);
+	LOG_DBG("Send PC [%s] Len[%d]", nData, send_len);
+	send_serial_data(eEXT_UART, (uint8_t *)nData, send_len);
 }
 
 void get_front_data(void)
@@ -197,6 +202,7 @@ void get_ext_data(void)
 				extRxData[i] = extRxData[i+1];
 			}
 			extRxData[i] = read_ch;
+			//LOG_HEX_DUMP(extRxData, 8, "erxData");
 			m_normal_parse_received_data(UART_RECV_EXT, extRxData, 8);
 		}else if(Device.nDeviceCurrentStatus == LCD_STATUS_MODE_STROBE_REMOTE){
 			for(int i = 0; i < 23; i++){

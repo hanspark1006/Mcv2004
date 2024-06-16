@@ -90,6 +90,7 @@ int num_data_modify(uint8_t *pRX_data)
 
 uint8_t parse_remote(uint8_t *nRx1_data)
 {
+	//LOG_HEX_DUMP(nRx1_data, 8, "Remote");
 	if ((nRx1_data[4] == 0x02) && (nRx1_data[7] == 0x03)){
 		//LOG_HEX_DUMP(nRx1_data, 8, "Remote4");
 		if(num_data_modify(&nRx1_data[5])){
@@ -113,6 +114,7 @@ uint8_t parse_remote(uint8_t *nRx1_data)
 		int idx = nRx1_data[1] - 0x30;
 		if (nRx1_data[2] == 'w'){
 			int adc = 0;
+			//LOG_DBG("%x %x %x %x", nRx1_data[3], nRx1_data[4], nRx1_data[5], nRx1_data[6])
 			adc = (nRx1_data[3] - 0x30) * 1000;
 			adc += ((nRx1_data[4] - 0x30) * 100);
 			adc += ((nRx1_data[5] - 0x30) * 10);
@@ -335,6 +337,7 @@ void onPushTcpData(uint8_t *pData, int size)
 	for(i = 0; i < size; i++){
 		push_ext_buf(pData[i]);
 	}
+
 	return ;
 }
 

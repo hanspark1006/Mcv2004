@@ -36,6 +36,11 @@ osThreadId ethernetTaskHandle;
 extern I2C_HandleTypeDef hi2c1;
 extern SPI_HandleTypeDef hspi1;
 
+#ifdef _DHCP_
+uint8_t dhcpsvrip[4] = { 168, 124, 101, 2 };
+uint8_t dnsip[4] = { 0, 0, 0, 0 };
+#endif
+
 static uint8_t mymac[6] = { 0x54, 0x57, 0x51, 0x10, 0x05, 0x25 };
 mac_ip_addr g_ip_net;
 
@@ -83,13 +88,13 @@ static int read_packet(void)
 	tmp_cnt = Ethernet_PacketReceive(ETH_BUFFER_SIZE, eth_buf);
 	dat_p = Ethernet_packetloop_icmp_tcp(eth_buf, tmp_cnt);
 	if (dat_p > 0){
-		LOG_HEX_DUMP(eth_buf, tmp_cnt, "Received Data >>");
+//		LOG_HEX_DUMP(eth_buf, tmp_cnt, "Received Data >>");
 
 		memcpy(recv_buf, &eth_buf[TCP_DATA_PAYLOAD],tmp_cnt - dat_p);
 		push_event0_param(EVT_received_tcp, recv_buf, tmp_cnt - dat_p);
 		offset =  make_send_data(&eth_buf[TCP_DATA_PAYLOAD]);
 		if(offset > 0){
-			LOG_HEX_DUMP(eth_buf,  dat_p+offset, "Send Data >>");
+//			LOG_HEX_DUMP(eth_buf,  dat_p+offset, "Send Data >>");
 		}
 		else{
 			offset = tmp_cnt - dat_p;
@@ -174,7 +179,7 @@ uint8_t ENC28J60_TransceiveByte(uint8_t data) {
 
 int m_eth_write_mac_ipaddr(ip_net_t *ip_addr)
 {
-	uint8_t buffer[20], size;
+	uint8_t buffer[32]={0,}, size;
 	uint16_t mem_address;
 
 	mem_address = 0;
@@ -182,8 +187,9 @@ int m_eth_write_mac_ipaddr(ip_net_t *ip_addr)
 	g_ip_net.id[0] = 'Y';
 	g_ip_net.id[1] = 'S';
 	memcpy(&g_ip_net.ip_net, ip_addr, sizeof(ip_net_t));
-	memcpy(buffer, &g_ip_net, size);
-	if(m_env_e2p_write(&MAC_I2C_HANDLE, AT24EEP_ADDR, mem_address, 2, buffer, size)){
+	memcpy(buffer, &g_ip_net, sizeof(mac_ip_addr));
+	LOG_HEX_DUMP(buffer, size, "Write E2p");
+	if(m_env_e2p_write(&MAC_I2C_HANDLE, AT24EEP_ADDR, mem_address, 1, buffer, size)){
 		LOG_ERR("Set IP Address from MacIC Error");
 		return 1;
 	}
@@ -193,19 +199,19 @@ int m_eth_write_mac_ipaddr(ip_net_t *ip_addr)
 
 static int read_ipnet(void)
 {
-	uint8_t buffer[20], size;
+	uint8_t buffer[32]={0,}, size;
 	uint16_t mem_address;
 
 	mem_address = 0;
 	size = sizeof(mac_ip_addr);
-	if(m_env_e2p_read(&MAC_I2C_HANDLE, AT24EEP_ADDR, mem_address, 2, buffer, size)){
+	if(m_env_e2p_read(&MAC_I2C_HANDLE, AT24EEP_ADDR, mem_address, 1, buffer, size)){
 		LOG_ERR("Get IP Address from MacIC Error\r\n");
 		return 1;
 	}
-
-	memcpy(&g_ip_net, buffer, size);
+	LOG_HEX_DUMP(buffer, size, "Read E2p");
+	memcpy(&g_ip_net, buffer, sizeof(mac_ip_addr));
 	if(memcmp(g_ip_net.id, "YS", 2)==0){
-		LOG_INF("Read IP Addr [%03d.%03d.%03d.%03d] Port[%d]\r\n", g_ip_net.ip_net.ipaddr[0], g_ip_net.ip_net.ipaddr[1],
+		LOG_INF("Read Size [%d] IP Addr [%03d.%03d.%03d.%03d] Port[%d]\r\n", size, g_ip_net.ip_net.ipaddr[0], g_ip_net.ip_net.ipaddr[1],
 							g_ip_net.ip_net.ipaddr[2], g_ip_net.ip_net.ipaddr[3], g_ip_net.ip_net.port);
 		return 0;
 	}else{
@@ -237,7 +243,9 @@ static void onWriteIPAddress(void *pData, uint32_t size)
 	ipnet.ipaddr[2] = Data[2];
 	ipnet.ipaddr[3] = Data[3];
 
-	memcpy(&ipnet.port, &Data[4], 2);
+	ipnet.port = (Data[4]<<8 | Data[5]);
+	LOG_DBG("Port[%d][%d] inet[%d]", Data[4], Data[5], ipnet.port);
+
 
 	error = m_eth_write_mac_ipaddr(&ipnet);
 
