@@ -23,6 +23,7 @@ typedef struct _pwm_timer{
 }PWM_Timer;
 /* Exported constants --------------------------------------------------------*/
 extern __IO int nPWMTimer[];
+extern uint8_t inter[];
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions prototypes ---------------------------------------------*/
 void m_pwm_init(void);

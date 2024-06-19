@@ -34,15 +34,17 @@ int nChangeFlag = 0;
 int g_pwm_freq = PWM_FREQ_140Khz;
 /* Private function prototypes -----------------------------------------------*/
 static void check_ext_input(void);
-
+uint8_t inter[4];
 void on_measure(void const * argument)
 {
 	static int old_status = -1;
 
 	//m_env_check_temp();
+//	LOG_DBG("measure Timer: Strobe tim1[%d] tim2[%d] tim3[%d]tim4[%d]", nPWMTimer[0], nPWMTimer[1], nPWMTimer[2], nPWMTimer[3]);
+//	LOG_DBG("Intrrupt Int1[%d]Int2[%d]Int3[%d]Int4[%d]", inter[0], inter[1], inter[2], inter[3]);
 
 	if(old_status != Device.nDeviceCurrentStatus){
-		LOG_DBG("Status[%d] Channel[%d]", Device.nDeviceCurrentStatus, g_Channels);
+		//LOG_DBG("Status[%d] Channel[%d]", Device.nDeviceCurrentStatus, g_Channels);
 		old_status = Device.nDeviceCurrentStatus;
 	}
 
@@ -60,6 +62,7 @@ static void check_ext_input(void)
 
 	for(i = 0; i < MAX_PWM_CH; i++){
 		status = HAL_GPIO_ReadPin(port[i], pin[i]);
+		//LOG_DBG("Read Status[%d][%d]", i, status);
 		if (bEX_INPUT[i] != status){
 			bEX_INPUT[i] = status;
 			if (bEX_INPUT[i] == GPIO_PIN_RESET){
@@ -269,8 +272,13 @@ void parse_front(uint8_t *nRx2_data)
 				}else if (Device.nDeviceCurrentStatus == LCD_STATUS_MODE_EXT){
 					if (nChangeFlag == 1){
 						for(int input = 0; input < MAX_PWM_CH; input++){
-							if(bEX_INPUT[input] == 0) m_pwm_out(input, Device.nPWM[input]);
-							else m_pwm_out(input, 0);
+							if(bEX_INPUT[input] == 0){
+								//LOG_DBG("EXT Input!!");
+								m_pwm_out(input, Device.nPWM[input]);
+							}else{
+								//LOG_DBG("EXT None!!");
+								m_pwm_out(input, 0);
+							}
 						}
 					}
 				}

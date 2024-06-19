@@ -96,7 +96,7 @@ typedef  void (*pFunction)(void);
 #define BUILD_MIN   ((BUILD_TIME_IS_BAD) ? 99 :  COMPUTE_BUILD_MIN)
 #define BUILD_SEC   ((BUILD_TIME_IS_BAD) ? 99 :  COMPUTE_BUILD_SEC)
 
-#define _VERSION_	"0.0.1"
+#define _VERSION_	"0.0.4"
 
 #define OP_LED_TIMER_TICK	500
 /* USER CODE END PD */

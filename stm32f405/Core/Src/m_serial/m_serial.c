@@ -43,6 +43,7 @@ static uint8_t Ext_rx_buf[1];
 static uint8_t Front_rx_buf[1];
 
 static uint8_t recv_buf[MAX_RECV_LEN]={0};
+static uint8_t ext_recv_buf[MAX_RECV_LEN]={0};
 static uint8_t extRxData[24]={0,};
 static uint8_t frontRxData[8]={0,};
 
@@ -59,7 +60,7 @@ void push_ext_buf(uint8_t ch)
 	if(index == ext_out) return ;
 
 	ext_in = index;
-	recv_buf[ext_in] = ch;
+	ext_recv_buf[ext_in] = ch;
 }
 
 void push_front_buf(uint8_t ch)
@@ -77,7 +78,7 @@ uint8_t pop_ext_buf(uint8_t *ch)
 	if(ext_in == ext_out) return 0;
 	ext_out = (ext_out + 1) % MAX_RECV_LEN;
 
-	*ch =  recv_buf[ext_out];
+	*ch =  ext_recv_buf[ext_out];
 
 	return 1;
 }
@@ -217,6 +218,7 @@ void get_ext_data(void)
 static void SerialTask(void const * argument)
 {
 	while(1){
+		//LOG_DBG("ei[%d]eo[%d]ri[%d]ro[%d]", ext_in, ext_out, front_in, front_out);
 		get_ext_data();
 		get_front_data();
 		osDelay(2);

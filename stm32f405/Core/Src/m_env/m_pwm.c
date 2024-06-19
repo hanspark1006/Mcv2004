@@ -25,7 +25,7 @@ void m_pwm_out(int channel, int data)
 {
 	uint32_t tim_ch[MAX_PWM_CH]={TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4};
 
-	LOG_INF("%s ch[%d] data[%d]", __func__, channel, data);
+//	LOG_INF("%s ch[%d] data[%d]", __func__, channel, data);
 
 	sConfigOC_.Pulse = (uint32_t)data;
 #if 0
@@ -76,7 +76,7 @@ void set_gpio_out_port(void)
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(CH1_OUT_GPIO_Port, &GPIO_InitStruct);
 
-	GPIO_InitStruct.Pin = CH2_OUT_Pin | CH3_OUT_Pin | CH4_OUT_Pin | GPIO_PIN_12;
+	GPIO_InitStruct.Pin = CH2_OUT_Pin | CH3_OUT_Pin | CH4_OUT_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -87,10 +87,19 @@ void m_pwm_channel_change(void)
 {
 	set_gpio_out_port();
 
-	HAL_TIM_Base_Start_IT(TIMER_1);
-	HAL_TIM_Base_Start_IT(TIMER_2);
-	HAL_TIM_Base_Start_IT(TIMER_3);
-	HAL_TIM_Base_Start_IT(TIMER_4);
+	LOG_DBG("Start Strobe Timer");
+	if(HAL_TIM_Base_Start_IT(TIMER_1) != HAL_OK){
+		LOG_ERR("Timer1 Start Error!!");
+	}
+	if(HAL_TIM_Base_Start_IT(TIMER_2) != HAL_OK){
+		LOG_ERR("Timer2 Start Error!!");
+	}
+	if(HAL_TIM_Base_Start_IT(TIMER_3) != HAL_OK){
+		LOG_ERR("Timer3 Start Error!!");
+	}
+	if(HAL_TIM_Base_Start_IT(TIMER_4) != HAL_OK){
+		LOG_ERR("Timer4 Start Error!!");
+	}
 }
 
 void m_pwm_init(void)

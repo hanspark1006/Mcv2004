@@ -192,6 +192,7 @@ void EXTI0_IRQHandler(void)
 			nPWMTimer[0] = Device.nDELAY[0]+ADD_DELAY_MS;
 		}
 	}
+	inter[0] ^= inter[0];
 #if 1
 	if(__HAL_GPIO_EXTI_GET_IT(EXT_INT1_Pin) != 0x00u)
 	{
@@ -219,6 +220,7 @@ void EXTI1_IRQHandler(void)
 			nPWMTimer[1] = Device.nDELAY[1]+ADD_DELAY_MS;
 		}
 	}
+	inter[1] ^= inter[1];
 #if 1
 	if(__HAL_GPIO_EXTI_GET_IT(EXT_INT2_Pin) != 0x00u)
 	{
@@ -246,6 +248,7 @@ void EXTI4_IRQHandler(void)
 			nPWMTimer[3] = Device.nDELAY[3]+ADD_DELAY_MS;
 		}
 	}
+	inter[3] ^= inter[3];
 #if 1
 	if(__HAL_GPIO_EXTI_GET_IT(EXT_INT4_Pin) != 0x00u)
 	{
@@ -273,6 +276,7 @@ void EXTI9_5_IRQHandler(void)
 			nPWMTimer[2] = Device.nDELAY[2]+ADD_DELAY_MS;
 		}
 	}
+	inter[2] ^= inter[2];
 #if 1
 	if(__HAL_GPIO_EXTI_GET_IT(EXT_INT3_Pin) != 0x00u)
 	{
@@ -373,6 +377,7 @@ void TIM8_UP_TIM13_IRQHandler(void)
 			nPWMTimer[2]-=TIMER_UNIT;
 			if(nPWMTimer[2] == ADD_DELAY_MS){
 				GPIOB->BSRR = CH3_OUT_Pin;
+				nPWMTimer[2] =  Device.nPULSE[2];
 			}else if(nPWMTimer[2] <= 0){
 				GPIOB->BSRR = 0x04000000;//(uint32_t)GPIO_PIN_10 << 16u;
 			}
@@ -405,6 +410,7 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void)
 			nPWMTimer[3]-=TIMER_UNIT;
 			if(nPWMTimer[3] == ADD_DELAY_MS){
 				GPIOB->BSRR = CH4_OUT_Pin;
+				nPWMTimer[3] =  Device.nPULSE[3];
 			}else if(nPWMTimer[3] <= TIMER_UNIT){
 				GPIOB->BSRR = 0x08000000;//(uint32_t)GPIO_PIN_11 << 16u;
 			}
@@ -436,7 +442,7 @@ void TIM7_IRQHandler(void)
 		if(nPWMTimer[0] > 0){
 			nPWMTimer[0]-=TIMER_UNIT;
 			if(nPWMTimer[0] == ADD_DELAY_MS){
-				GPIOB->BSRR = CH1_OUT_Pin;
+				GPIOA->BSRR = CH1_OUT_Pin;
 				nPWMTimer[0] = Device.nPULSE[0];
 			}
 		}else if(nPWMTimer[0] <= 0){

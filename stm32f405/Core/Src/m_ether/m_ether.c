@@ -18,6 +18,11 @@ typedef struct _mac_ip_addr
 	char id[2];
 	ip_net_t ip_net;
 }mac_ip_addr;
+
+typedef enum{
+	eREPLY_OK,
+	eREPLY_IP
+}eReply_t;
 /* Private define ------------------------------------------------------------*/
 #define  DEC2BCD(v) (((v/10)<<4) + (v%10));
 #define  BCD2DEC(v) ((v>>4)*10 + (v&0x0F));
@@ -29,6 +34,7 @@ typedef struct _mac_ip_addr
 
 #define MAC_I2C_HANDLE	hi2c1
 
+#define _SET_DEFAULT_IP_TEST	1
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 osThreadId ethernetTaskHandle;
@@ -46,8 +52,11 @@ mac_ip_addr g_ip_net;
 
 uint8_t eth_buf[ETH_BUFFER_SIZE+1];
 uint8_t recv_buf[50];
-
+int send_reply_len;
+uint8_t need_reply = 0;
 static event_queue_observer_t ether_event;
+
+
 /* Private function prototypes -----------------------------------------------*/
 void EthernetTask(void const * argument);
 
@@ -68,22 +77,50 @@ static int read_mac_addr(void)
 	return 0;
 }
 
-static int make_send_data(uint8_t *pPayLoad)
+static int make_send_data(uint8_t *pPayLoad, eReply_t type, int error)
 {
 	int offset = 0;
 
-	pPayLoad[offset++] = 0x00;
-	pPayLoad[offset++] = 0xFF;
-	pPayLoad[offset++] = 0xFE;
+	if(type == eREPLY_OK){
+		if(error){
+			sprintf((char *)&pPayLoad[offset], "ERROR\r\n");
+			offset = 7;
+		}else{
+			sprintf((char *)&pPayLoad[offset], "OK\r\n");
+			offset = 4;
+		}
+	}else if(type == eREPLY_IP){
+		pPayLoad[offset] = 0xDF;
+		offset+=1;
+
+		memcpy(&pPayLoad[offset], g_ip_net.ip_net.ipaddr, 4);
+		offset+=4;
+		memcpy(&pPayLoad[offset], &g_ip_net.ip_net.port, 2);
+		offset+=2;
+		pPayLoad[offset] = 0xFD;
+	}
 
 	return offset;
 }
 
+static void send_reply_data(eReply_t reply_type, int error)
+{
+	uint16_t offset;
+
+	offset =  make_send_data(&eth_buf[TCP_DATA_PAYLOAD], reply_type, error);
+	if(offset > 0){
+//			LOG_HEX_DUMP(eth_buf,  dat_p+offset, "Send Data >>");
+	}
+	else{
+		offset = send_reply_len;
+	}
+	LOG_DBG("Send Tcp Reply Data Len[%d]", offset);
+	Ethernet_wb_server_reply(eth_buf, offset);
+}
 static int read_packet(void)
 {
 	int tmp_cnt;
 	uint16_t dat_p;
-	uint16_t offset;
 
 	tmp_cnt = Ethernet_PacketReceive(ETH_BUFFER_SIZE, eth_buf);
 	dat_p = Ethernet_packetloop_icmp_tcp(eth_buf, tmp_cnt);
@@ -92,14 +129,16 @@ static int read_packet(void)
 
 		memcpy(recv_buf, &eth_buf[TCP_DATA_PAYLOAD],tmp_cnt - dat_p);
 		push_event0_param(EVT_received_tcp, recv_buf, tmp_cnt - dat_p);
-		offset =  make_send_data(&eth_buf[TCP_DATA_PAYLOAD]);
-		if(offset > 0){
-//			LOG_HEX_DUMP(eth_buf,  dat_p+offset, "Send Data >>");
+		send_reply_len = tmp_cnt - dat_p;
+		if(recv_buf[0] == 0x02 && recv_buf[7] == 0x03){
+			int offset = TCP_DATA_PAYLOAD;
+
+			eth_buf[offset++] = 0x00;
+			pPayLoad[offset++] = 0xFF;
+			pPayLoad[offset++] = 0xFE;
+			Ethernet_wb_server_reply(eth_buf, offset);
 		}
-		else{
-			offset = tmp_cnt - dat_p;
-		}
-		Ethernet_wb_server_reply(eth_buf, offset);
+		need_reply = 1;
 	}
 
 	return 0;
@@ -194,6 +233,7 @@ int m_eth_write_mac_ipaddr(ip_net_t *ip_addr)
 		return 1;
 	}
 
+	Ethernet_init_ip_arp_udp_tcp(mymac, g_ip_net.ip_net.ipaddr, g_ip_net.ip_net.port);
 	return 0;
 }
 
@@ -213,6 +253,9 @@ static int read_ipnet(void)
 	if(memcmp(g_ip_net.id, "YS", 2)==0){
 		LOG_INF("Read Size [%d] IP Addr [%03d.%03d.%03d.%03d] Port[%d]\r\n", size, g_ip_net.ip_net.ipaddr[0], g_ip_net.ip_net.ipaddr[1],
 							g_ip_net.ip_net.ipaddr[2], g_ip_net.ip_net.ipaddr[3], g_ip_net.ip_net.port);
+#if _SET_DEFAULT_IP_TEST
+		return 1;
+#endif
 		return 0;
 	}else{
 		LOG_ERR("Not found IP Address from MacIC!!\r\n");
@@ -250,6 +293,10 @@ static void onWriteIPAddress(void *pData, uint32_t size)
 	error = m_eth_write_mac_ipaddr(&ipnet);
 
 	m_serial_SendPC(RET_OK, &error);
+	if(need_reply){
+		need_reply = 0;
+		send_reply_data(eREPLY_OK, error);
+	}
 }
 
 static void onReadIPAddress(void)
@@ -262,6 +309,14 @@ static void onReadIPAddress(void)
 		m_serial_SendPC(RET_OK, &error);
 	}else{
 		m_serial_SendPC(RET_IP, &g_ip_net.ip_net);
+	}
+
+	if(need_reply){
+		if(error){
+			send_reply_data(eREPLY_OK, error);
+		}else{
+			send_reply_data(eREPLY_IP, 0);
+		}
 	}
 }
 
@@ -298,6 +353,7 @@ static void evt_handler(event_t const* evt, void* p_context)
 void EthernetInit(void)
 {
 	int time_out = 0;
+	ip_net_t default_ip;
 
 	osThreadDef(ethernetTask, EthernetTask, osPriorityNormal, 0, 128);
 	ethernetTaskHandle = osThreadCreate(osThread(ethernetTask), NULL);
@@ -310,16 +366,20 @@ void EthernetInit(void)
 
 	if(read_ipnet()){
 		// default ip address
-		g_ip_net.ip_net.ipaddr[0] = 192;
-		g_ip_net.ip_net.ipaddr[1] = 168;
-		g_ip_net.ip_net.ipaddr[2] = 0;
-		g_ip_net.ip_net.ipaddr[3] = 2;
-		g_ip_net.ip_net.port = 80;
+		default_ip.ipaddr[0] = 192;
+		default_ip.ipaddr[1] = 168;
+		default_ip.ipaddr[2] = 0;
+		default_ip.ipaddr[3] = 5;
+		default_ip.port = 5050;
 
-		g_ip_net.ip_net.gateway[0] = 192;
-		g_ip_net.ip_net.gateway[1] = 168;
-		g_ip_net.ip_net.gateway[2] = 0;
-		g_ip_net.ip_net.gateway[3] = 1;
+		default_ip.gateway[0] = 192;
+		default_ip.gateway[1] = 168;
+		default_ip.gateway[2] = 0;
+		default_ip.gateway[3] = 1;
+
+		LOG_INF("Set Default IP Addr [%03d.%03d.%03d.%03d] Port[%d]\r\n", default_ip.ipaddr[0], default_ip.ipaddr[1],
+										default_ip.ipaddr[2], g_ip_net.ip_net.ipaddr[3], default_ip.port);
+		m_eth_write_mac_ipaddr(&default_ip);
 	}
 
 	if(ethernet_init())
