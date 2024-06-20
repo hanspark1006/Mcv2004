@@ -34,7 +34,7 @@ typedef enum{
 
 #define MAC_I2C_HANDLE	hi2c1
 
-#define _SET_DEFAULT_IP_TEST	1
+#define _SET_DEFAULT_IP_TEST	0
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 osThreadId ethernetTaskHandle;
@@ -76,11 +76,14 @@ static int read_mac_addr(void)
 
 	return 0;
 }
-
+#if 0
 static int make_send_data(uint8_t *pPayLoad, eReply_t type, int error)
+#else
+static int make_send_data(uint8_t *pPayLoad)
+#endif
 {
 	int offset = 0;
-
+#if 0
 	if(type == eREPLY_OK){
 		if(error){
 			sprintf((char *)&pPayLoad[offset], "ERROR\r\n");
@@ -99,10 +102,16 @@ static int make_send_data(uint8_t *pPayLoad, eReply_t type, int error)
 		offset+=2;
 		pPayLoad[offset] = 0xFD;
 	}
+#else
+	pPayLoad[offset++] = 0x00;
+	pPayLoad[offset++] = 0xFF;
+	pPayLoad[offset++] = 0xFE;
+#endif
 
 	return offset;
 }
 
+#if 0
 static void send_reply_data(eReply_t reply_type, int error)
 {
 	uint16_t offset;
@@ -117,10 +126,13 @@ static void send_reply_data(eReply_t reply_type, int error)
 	LOG_DBG("Send Tcp Reply Data Len[%d]", offset);
 	Ethernet_wb_server_reply(eth_buf, offset);
 }
+#endif
+
 static int read_packet(void)
 {
 	int tmp_cnt;
 	uint16_t dat_p;
+	uint16_t offset;
 
 	tmp_cnt = Ethernet_PacketReceive(ETH_BUFFER_SIZE, eth_buf);
 	dat_p = Ethernet_packetloop_icmp_tcp(eth_buf, tmp_cnt);
@@ -129,15 +141,14 @@ static int read_packet(void)
 
 		memcpy(recv_buf, &eth_buf[TCP_DATA_PAYLOAD],tmp_cnt - dat_p);
 		push_event0_param(EVT_received_tcp, recv_buf, tmp_cnt - dat_p);
-		send_reply_len = tmp_cnt - dat_p;
-		if(recv_buf[0] == 0x02 && recv_buf[7] == 0x03){
-			int offset = TCP_DATA_PAYLOAD;
+		offset = make_send_data(&eth_buf[TCP_DATA_PAYLOAD]);
+		if(offset > 0){
 
-			eth_buf[offset++] = 0x00;
-			pPayLoad[offset++] = 0xFF;
-			pPayLoad[offset++] = 0xFE;
-			Ethernet_wb_server_reply(eth_buf, offset);
+		}else{
+			offset = tmp_cnt - dat_p;
 		}
+
+		Ethernet_wb_server_reply(eth_buf, offset);
 		need_reply = 1;
 	}
 
@@ -293,10 +304,12 @@ static void onWriteIPAddress(void *pData, uint32_t size)
 	error = m_eth_write_mac_ipaddr(&ipnet);
 
 	m_serial_SendPC(RET_OK, &error);
+#if 0
 	if(need_reply){
 		need_reply = 0;
 		send_reply_data(eREPLY_OK, error);
 	}
+#endif
 }
 
 static void onReadIPAddress(void)
@@ -310,7 +323,7 @@ static void onReadIPAddress(void)
 	}else{
 		m_serial_SendPC(RET_IP, &g_ip_net.ip_net);
 	}
-
+#if 0
 	if(need_reply){
 		if(error){
 			send_reply_data(eREPLY_OK, error);
@@ -318,6 +331,7 @@ static void onReadIPAddress(void)
 			send_reply_data(eREPLY_IP, 0);
 		}
 	}
+#endif
 }
 
 int m_eth_read_mac_ipaddr(ip_net_t *ip_addr)
