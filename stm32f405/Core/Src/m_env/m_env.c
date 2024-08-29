@@ -16,6 +16,7 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 uint8_t bSW[MAX_DIP_SW_CHANNEL] = {1,};
+uint8_t lan_select_status;
 /* Private function prototypes -----------------------------------------------*/
 uint8_t m_dipsw_read_Channel(void)
 {
@@ -30,15 +31,28 @@ uint8_t m_dipsw_read_Channel(void)
 			bSW[i] = status;
 		}
 		if(bSW[i] == GPIO_PIN_RESET){
-			if(i==2){
-				flag |= 0x02;
-			}else if(i == 3){
-				flag |= 0x01;
+			LOG_DBG("Disp SW %d LOW", i+1);
+			switch(i){
+				case 2: flag |= 0x02; break;
+				case 3: flag |= 0x01; break;
+				default: break;
 			}
+		}else{
+			LOG_DBG("Disp SW %d HIGH", i+1);
 		}
+
 	}
 
+	lan_select_status = HAL_GPIO_ReadPin(LAN_SEL_GPIO_Port, LAN_SEL_Pin);
+
 	return flag;
+}
+
+uint8_t m_isEnable_Ethernet(void)
+{
+	lan_select_status = HAL_GPIO_ReadPin(LAN_SEL_GPIO_Port, LAN_SEL_Pin);
+	//LOG_DBG("Len Select [%d]", lan_select_status);
+	return lan_select_status;
 }
 
 int m_env_e2p_write(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint16_t MemAddress, uint16_t MemAddSize, uint8_t *pData, uint16_t Size)
@@ -65,11 +79,6 @@ int m_env_e2p_read(I2C_HandleTypeDef *hi2c, uint16_t DevAddress, uint16_t MemAdd
 		return -1;
 	}
 	return 0;
-}
-
-uint8_t m_env_serial_select(void)
-{
-	return HAL_GPIO_ReadPin(INPUT_SEL_GPIO_Port, INPUT_SEL_Pin);
 }
 
 void m_env_check_temp(void)

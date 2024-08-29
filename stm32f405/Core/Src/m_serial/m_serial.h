@@ -37,6 +37,7 @@ void RS485_Enable_Int_Handle(void);
 void m_serial_init(void);
 void m_serial_SendFront(int protocol, int data);
 void m_serial_SendPC(uint8_t digit, void *data);
+void m_serial_block_extmode(uint8_t enable);
 void push_ext_buf(uint8_t ch);
 /* Private defines -----------------------------------------------------------*/
 

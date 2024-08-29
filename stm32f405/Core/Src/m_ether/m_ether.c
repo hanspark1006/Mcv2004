@@ -27,8 +27,8 @@ typedef enum{
 #define  DEC2BCD(v) (((v/10)<<4) + (v%10));
 #define  BCD2DEC(v) ((v>>4)*10 + (v&0x0F));
 
-#define AT24EEP_ADDR		0xAE
-#define AT24MAC_ADDR		0xBE
+#define AT24EEP_ADDR		0xA0
+#define AT24MAC_ADDR		0xB0
 #define EUI48_ADDR			0x9A
 #define TCP_DATA_PAYLOAD	0x36
 
@@ -56,6 +56,9 @@ int send_reply_len;
 uint8_t need_reply = 0;
 static event_queue_observer_t ether_event;
 
+static struct {
+	uint8_t enable;
+}m_cfg = {.enable = 0};
 
 /* Private function prototypes -----------------------------------------------*/
 void EthernetTask(void const * argument);
@@ -341,10 +344,17 @@ int m_eth_read_mac_ipaddr(ip_net_t *ip_addr)
 	return 0;
 }
 
+void onEthernetFuncEnable(uint8_t enable)
+{
+	m_cfg.enable = enable;
+}
+
 void EthernetTask(void const * argument)
 {
 	while(1){
-		read_packet();
+		if(m_cfg.enable){
+			read_packet();
+		}
 		osDelay(10);
 	}
 }
@@ -358,6 +368,11 @@ static void evt_handler(event_t const* evt, void* p_context)
 			break;
 		case EVT_Get_ip:
 			onReadIPAddress();
+			break;
+		case EVT_Disable_ip:
+			break;
+		case EVT_eth_enable:
+			onEthernetFuncEnable(evt->param1);
 			break;
 		default:
 			break;

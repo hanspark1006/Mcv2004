@@ -32,6 +32,9 @@ uint8_t bEX_INPUT[MAX_PWM_CH] = {1,};
 int bSerialOnOff[4] = {0, 0, 0, 0};
 int nChangeFlag = 0;
 int g_pwm_freq = PWM_FREQ_140Khz;
+static struct{
+	uint8_t enable_eth;
+}m_cfg={.enable_eth = 0};
 /* Private function prototypes -----------------------------------------------*/
 static void check_ext_input(void);
 uint8_t inter[4];
@@ -40,16 +43,29 @@ void on_measure(void const * argument)
 	static int old_status = -1;
 
 	//m_env_check_temp();
-//	LOG_DBG("measure Timer: Strobe tim1[%d] tim2[%d] tim3[%d]tim4[%d]", nPWMTimer[0], nPWMTimer[1], nPWMTimer[2], nPWMTimer[3]);
-//	LOG_DBG("Intrrupt Int1[%d]Int2[%d]Int3[%d]Int4[%d]", inter[0], inter[1], inter[2], inter[3]);
 
 	if(old_status != Device.nDeviceCurrentStatus){
 		//LOG_DBG("Status[%d] Channel[%d]", Device.nDeviceCurrentStatus, g_Channels);
 		old_status = Device.nDeviceCurrentStatus;
 	}
 
+	//LOG_DBG("Status[%d] LAN Sel[%d]", Device.nDeviceCurrentStatus, m_isEnable_Ethernet())
 	if(Device.nDeviceCurrentStatus == LCD_STATUS_MODE_EXT){
 		check_ext_input();
+	}else if(Device.nDeviceCurrentStatus == LCD_STATUS_MODE_REMOTE){
+		if(m_isEnable_Ethernet()){
+			if(m_cfg.enable_eth == 0){
+				push_event1(EVT_eth_enable, 1);  // run eth mode
+				m_cfg.enable_eth = 1;
+				m_serial_block_extmode(1);
+			}
+		}else{
+			if(m_cfg.enable_eth){
+				push_event1(EVT_eth_enable, 0);  // stop eth mode
+				m_cfg.enable_eth = 0;
+			}
+			m_serial_block_extmode(0);
+		}
 	}
 }
 
@@ -245,6 +261,7 @@ void parse_front(uint8_t *nRx2_data)
 		int data = atoi(recv_data);
 		if (protocol == DEVICE_STATUS)
 		{
+			//LOG_HEX_DUMP(recv_data, 7, "dump front data");
 			//LOG_INF("CurStatus:%d, RecvStatus[%d] DeviceNo[%d]", Device.nDeviceCurrentStatus, data, Device.nDeviceNo);
 			Device.nDeviceCurrentStatus = data;
 			if (Device.nDeviceCurrentStatus != Device.nDeviceCurrentStatus_old){
@@ -325,7 +342,7 @@ void parse_front(uint8_t *nRx2_data)
 			if (Device.nDeviceNo >= 1 && Device.nDeviceNo <= 6 ){
 				ch_base += (Device.nDeviceNo-1)*4;
 				ch_idx = channel - ch_base;
-				//LOG_INF("channel[%d] idx[%d] data[%d]", channel, ch_idx, data);
+				//LOG_INF("channel[%d] ch_base[%d] idx[%d] data[%d]", channel, ch_base, ch_idx, data);
 				if(ch_idx < 4){
 					Device.nPWM[ch_idx]=data;
 				}
@@ -425,6 +442,20 @@ int m_menu_normal_init(void)
 
 	for(int i = 0; i < MAX_PWM_CH; i++){
 		m_pwm_out(i, 0);
+	}
+
+	if(m_isEnable_Ethernet()){
+		if(m_cfg.enable_eth == 0){
+			push_event1(EVT_eth_enable, 1);  // run eth mode
+			m_cfg.enable_eth = 1;
+			m_serial_block_extmode(1);
+		}
+	}else{
+		if(m_cfg.enable_eth){
+			push_event1(EVT_eth_enable, 0);  // stop eth mode
+			m_cfg.enable_eth = 0;
+		}
+		m_serial_block_extmode(0);
 	}
 
 	return 0;

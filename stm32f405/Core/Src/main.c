@@ -96,7 +96,8 @@ typedef  void (*pFunction)(void);
 #define BUILD_MIN   ((BUILD_TIME_IS_BAD) ? 99 :  COMPUTE_BUILD_MIN)
 #define BUILD_SEC   ((BUILD_TIME_IS_BAD) ? 99 :  COMPUTE_BUILD_SEC)
 
-#define _VERSION_	"0.0.5"
+//#define _VERSION_	"0.1.0"
+#define _VERSION_	"0.2.0"	// Add LAN Mode
 
 #define OP_LED_TIMER_TICK	500
 /* USER CODE END PD */
@@ -760,11 +761,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : INPUT_SEL_Pin */
-  GPIO_InitStruct.Pin = INPUT_SEL_Pin;
+  /*Configure GPIO pin : LAN_SEL_Pin */
+  GPIO_InitStruct.Pin = LAN_SEL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(INPUT_SEL_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(LAN_SEL_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI0_IRQn, 5, 0);

@@ -25,7 +25,7 @@ void m_pwm_out(int channel, int data)
 {
 	uint32_t tim_ch[MAX_PWM_CH]={TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4};
 
-//	LOG_INF("%s ch[%d] data[%d]", __func__, channel, data);
+	//LOG_INF("%s ch[%d] data[%d]", __func__, channel, data);
 
 	sConfigOC_.Pulse = (uint32_t)data;
 #if 0

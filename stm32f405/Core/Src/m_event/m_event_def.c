@@ -24,6 +24,8 @@ const char* event_type_2_str(event_type_t evt)
 		case_str(EVT_received_tcp)
 		case_str(EVT_Set_ip)
 		case_str(EVT_Get_ip)
+		case_str(EVT_Disable_ip)
+		case_str(EVT_eth_enable)
     	default :
 			break;
     }

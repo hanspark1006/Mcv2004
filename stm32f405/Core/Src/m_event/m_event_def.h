@@ -38,6 +38,8 @@ typedef enum
 	EVT_received_tcp,
 	EVT_Set_ip,
 	EVT_Get_ip,
+	EVT_Disable_ip,
+	EVT_eth_enable,
 } event_type_t;
 
 const char* event_type_2_str(event_type_t evt);

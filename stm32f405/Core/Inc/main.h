@@ -91,8 +91,8 @@ void JumpBootLoader(void);
 #define DIPSW3_GPIO_Port GPIOB
 #define DIPSW4_Pin GPIO_PIN_15
 #define DIPSW4_GPIO_Port GPIOB
-#define INPUT_SEL_Pin GPIO_PIN_8
-#define INPUT_SEL_GPIO_Port GPIOC
+#define LAN_SEL_Pin GPIO_PIN_8
+#define LAN_SEL_GPIO_Port GPIOC
 #define EXT_INT4_Pin GPIO_PIN_4
 #define EXT_INT4_GPIO_Port GPIOB
 #define EXT_INT4_EXTI_IRQn EXTI4_IRQn

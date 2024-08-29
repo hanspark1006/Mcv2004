@@ -52,6 +52,9 @@ static int front_in = 0, front_out = 0;
 
 osThreadId serialTaskHandle;
 
+static struct {
+	uint8_t block;
+}m_cfg={.block = 0};
 /* Private function prototypes -----------------------------------------------*/
 void push_ext_buf(uint8_t ch)
 {
@@ -97,7 +100,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	/* Console */
 	if ( huart->Instance == USART1 ){
-		push_ext_buf(Ext_rx_buf[0]);
+		if(m_cfg.block == 0){
+			push_ext_buf(Ext_rx_buf[0]);
+		}
 		HAL_UART_Receive_IT(EXT_UART, &Ext_rx_buf[0], 1 );
 	}else if ( huart->Instance == USART2 ){
 		push_front_buf(Front_rx_buf[0]);
@@ -119,6 +124,11 @@ int send_serial_data(uint8_t dest, uint8_t *send_data, uint32_t len)
 	}
 
 	return HAL_OK;
+}
+
+void m_serial_block_extmode(uint8_t enable)
+{
+	m_cfg.block = enable;
 }
 
 void m_serial_SendFront(int protocol, int data)
